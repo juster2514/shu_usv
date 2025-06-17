@@ -1,4 +1,4 @@
-#include "mixed_control/BottomMessageSub.hpp"
+#include "shu_core/BottomMessageSub.hpp"
 
 BottomMessageSub::BottomMessageSub():nh_("~"){
     

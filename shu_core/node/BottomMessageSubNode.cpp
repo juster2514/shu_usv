@@ -1,4 +1,4 @@
-#include "mixed_control/BottomMessageSub.hpp"
+#include "shu_core/BottomMessageSub.hpp"
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "bottom_message_sub_node");

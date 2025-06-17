@@ -1,4 +1,4 @@
-#include "mixed_control/MixedCotrol.hpp"
+#include "shu_core/MixedCotrol.hpp"
 
 
 MixedControl::MixedControl():nh_("~"){
@@ -12,7 +12,6 @@ MixedControl::MixedControl():nh_("~"){
 
     check_arm();
 
-    
 }
 
 

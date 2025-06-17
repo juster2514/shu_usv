@@ -1,4 +1,4 @@
-#include "mixed_control/MixedCotrol.hpp"
+#include "shu_core/MixedCotrol.hpp"
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "mixed_control_node");
