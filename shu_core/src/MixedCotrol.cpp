@@ -1,4 +1,4 @@
-#include "shu_core/MixedCotrol.hpp"
+#include "shu_core/MixedControl.hpp"
 
 
 MixedControl::MixedControl():nh_("~"){
