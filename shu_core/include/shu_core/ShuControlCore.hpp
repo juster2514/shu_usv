@@ -3,6 +3,8 @@
 
 #include "shu_core/MixedControl.hpp"
 #include "shu_core/UsvPid.hpp"
+#include "shu_core/TraditionalLos.hpp"
+
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -29,6 +31,7 @@ class ShuControlCore{
 
     std::shared_ptr<UsvPid> usv_pid_ptr_;
     std::shared_ptr<MixedControl> mixed_control_ptr_;
+    std::shared_ptr<TraditionalLOS> usv_los_ptr_;
 
     sensor_msgs::Imu imu_msg;
     geometry_msgs::PoseStamped position;

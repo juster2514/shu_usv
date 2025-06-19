@@ -1,5 +1,5 @@
-#ifndef UsvPid_HPP
-#define UsvPid_HPP
+#ifndef USVPID_HPP
+#define USVPID_HPP
 
 #include <ros/ros.h>
 #include <opencv2/opencv.hpp>

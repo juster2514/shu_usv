@@ -4,6 +4,7 @@ ShuControlCore::ShuControlCore():nh_("~"){
 
     usv_pid_ptr_ = std::make_shared<UsvPid>();
     mixed_control_ptr_ = std::make_shared<MixedControl>();
+	usv_los_ptr_ = std::make_shared<TraditionalLOS>();
 
 	ros::Publisher actuator_control_pub = nh_.advertise<mavros_msgs::ActuatorControl>("/mavros/actuator_control",10);
 
