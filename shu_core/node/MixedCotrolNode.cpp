@@ -7,5 +7,6 @@ int main(int argc, char** argv) {
   MixedControl mixed_control;
   
   ros::spin();
+  
   return 0;
 }

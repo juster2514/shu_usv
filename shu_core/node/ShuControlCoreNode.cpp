@@ -5,7 +5,10 @@
 int main(int argc, char** argv) {
 
   ros::init(argc, argv, "shu_control_core_node");
+
   ShuControlCore shu_control_core;
+
   ros::spin();
+  
   return 0;
 }

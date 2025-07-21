@@ -1,10 +1,18 @@
 #include "shu_core/UsvPid.hpp"
 
+/*
+*描述：混控PID速度环和角度环的构造函数
+*作用：初始化速度环PID和角度环PID
+*参数：无
+*输出：无
+*/
 UsvPid::UsvPid() : nh_("~") {
 
+  //读取速度环和角度环的PID参数
   const std::string speed_pid_file = "./src/shu_core/params/usv_speed_pid.yaml";
   const std::string angle_pid_file = "./src/shu_core/params/usv_angle_pid.yaml";
 
+  //初始化速度环和角度环PID参数
   speed_pid_ptr_ = std::make_shared<PidParams>(speed_pid_file);
   angle_pid_ptr_ = std::make_shared<PidParams>(angle_pid_file);
 
@@ -16,6 +24,12 @@ float UsvPid::operator()(const float target, const float current,std::shared_ptr
 
 }
 
+/*
+*描述：PID限幅函数
+*作用：限制PID输出的最大值，以保护系统安全
+*参数：[0]value:计算的PID输出值;[1]min:限幅的下限;[2]max:限幅的上限
+*输出：限制后的PID输出
+*/
 float PidLimit(float value, float min, float max) {
 
   if (value < min) return min;
@@ -25,6 +39,12 @@ float PidLimit(float value, float min, float max) {
 
 }
 
+/*
+*描述：PID输出计算函数
+*作用：计算PID的输出值
+*参数：[0]target:期望值;[1]current:当前值;[2]pid:计算哪个环的PID;[3]clean_integral:是否清除积分
+*输出：计算后的PID输出值
+*/
 const float UsvPid::CalculatePid(float target, float current, std::shared_ptr<PidParams> pid, bool clean_integral) const {
 
   pid->current_ = current;
