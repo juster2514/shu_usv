@@ -1,14 +1,14 @@
 #include "shu_core/TraditionalLos.hpp"
 
 /*
-*描述：TraditionalLOS类的构造函数
+*描述：TraditionalLos类的构造函数
 *作用：初始化ROS节点句柄，并加载LOS参数文件，创建LosParams对象的共享指针
 *参数：无
 *输出：无
 */
-TraditionalLOS::TraditionalLOS() : nh_("~") {
+TraditionalLos::TraditionalLos() : nh_("~") {
 
-  const std::string los_parmas_file = "./src/shu_core/params/usv_speed_pid.yaml";
+  const std::string los_parmas_file = "./src/shu_core/params/usv_traditional_los.yaml";
 
   traditional_los_ptr_ = std::make_shared<LosParams>(los_parmas_file);
 
@@ -20,7 +20,7 @@ TraditionalLOS::TraditionalLOS() : nh_("~") {
 *参数：[0]segStart:线段的起点坐标;[1]segEnd:线段的终点坐标;[2]position:当前位置坐标;[3]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：LOS的输出值，类型为float
 */
-float TraditionalLOS::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position ,std::shared_ptr<LosParams> los) const {
+float TraditionalLos::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position ,std::shared_ptr<LosParams> los) const {
 
     updatePosition(position,los);
     
@@ -36,7 +36,7 @@ float TraditionalLOS::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEn
 *参数：[0]position:新的位置坐标;[1]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：无
 */
-void TraditionalLOS::updatePosition(Eigen::Vector2d position,std::shared_ptr<LosParams> los) const{
+void TraditionalLos::updatePosition(Eigen::Vector2d position,std::shared_ptr<LosParams> los) const{
 
     los->position_ = position;
 
@@ -48,7 +48,7 @@ void TraditionalLOS::updatePosition(Eigen::Vector2d position,std::shared_ptr<Los
 *参数：[0]segStart:线段的起点坐标;[1]segEnd:线段的终点坐标;[2]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：无
 */
-void TraditionalLOS::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d segEnd , std::shared_ptr<LosParams> los) const {
+void TraditionalLos::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d segEnd , std::shared_ptr<LosParams> los) const {
 
     los->segVector_ = segEnd - segStart;
 
@@ -71,7 +71,7 @@ void TraditionalLOS::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d 
 *参数：[0]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：LOS的输出角度
 */
-const float TraditionalLOS::CalculateLos(std::shared_ptr<LosParams> los ) const{
+const float TraditionalLos::CalculateLos(std::shared_ptr<LosParams> los ) const{
 
     los->gamma_ =  atan2(los->segVector_[1],los->segVector_[0]);// y在前，x在后
 

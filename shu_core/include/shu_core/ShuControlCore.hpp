@@ -31,7 +31,7 @@ class ShuControlCore{
 
     std::shared_ptr<UsvPid> usv_pid_ptr_;
     std::shared_ptr<MixedControl> mixed_control_ptr_;
-    std::shared_ptr<TraditionalLOS> usv_los_ptr_;
+    std::shared_ptr<TraditionalLos> usv_los_ptr_;
 
     sensor_msgs::Imu imu_msg;
     geometry_msgs::PoseStamped position;

@@ -38,11 +38,11 @@ struct LosParams {
 
 };
 
-class TraditionalLOS
+class TraditionalLos
 {
  public:
-  explicit TraditionalLOS();
-  ~TraditionalLOS() = default;
+  explicit TraditionalLos();
+  ~TraditionalLos() = default;
 
   float operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position , std::shared_ptr<LosParams> los) const;
 

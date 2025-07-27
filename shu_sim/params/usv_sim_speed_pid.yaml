@@ -1,0 +1,11 @@
+%YAML:1.0
+---
+Pid.Name: usv_sim_speed_pid
+Kp: 0.0
+Ki: 0.0
+Kd: 0.0
+CalculateTime: 100
+Integal.Limit: 0.0
+Use.Integal.Limit: true
+Output.Limit: 0.0
+Use.Output.Limit: true

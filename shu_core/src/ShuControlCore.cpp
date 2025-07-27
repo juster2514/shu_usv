@@ -19,7 +19,7 @@ ShuControlCore::ShuControlCore():nh_("~"){
 //初始化对象
     usv_pid_ptr_ = std::make_shared<UsvPid>();
     mixed_control_ptr_ = std::make_shared<MixedControl>();
-	usv_los_ptr_ = std::make_shared<TraditionalLOS>();
+	usv_los_ptr_ = std::make_shared<TraditionalLos>();
 
 //初始化发布话题
 	ros::Publisher actuator_control_pub = nh_.advertise<mavros_msgs::ActuatorControl>("/mavros/actuator_control",10);
