@@ -7,14 +7,12 @@
 */
 ShuSimCore::ShuSimCore():nh_("~"){
 
-    segStart[0] = -40.0; 
-	segStart[1] = 0.0; 
-	segEnd[0] = 160.0; 
-	segEnd[1] = 80.0; 
-
 //初始化对象
 	usv_los_sim_ptr_ = std::make_shared<TraditionalLosSim>();
     usv_sim_pid_ptr_ = std::make_shared<UsvSimPid>();
+
+    const std::string point_parmas_file = "./src/shu_sim/params/usv_sim_path.yaml";
+    usv_sim_path_ptr_ = std::make_shared<PointPath>(point_parmas_file);
 
 //初始化发布话题
     left_vel_control = nh_.advertise<std_msgs::Float32>("/wamv/thrusters/left_thrust_cmd",10);
@@ -47,26 +45,32 @@ void ShuSimCore::shuSimCoreInit(){
     path_msg.header.frame_id = "map";
     path_msg.header.stamp = ros::Time::now();
 
+    // 获取完整路径点
+    full_path_points = usv_sim_path_ptr_->getPoints();
+
+    // 设置路径标记
     line_marker.header.frame_id = "map";
     line_marker.header.stamp = ros::Time::now();
-    line_marker.ns = "lines";
+    line_marker.ns = "full_path";
     line_marker.id = 0;
     line_marker.type = visualization_msgs::Marker::LINE_STRIP;
     line_marker.action = visualization_msgs::Marker::ADD;
-
     line_marker.pose.orientation.w = 1.0;
-
     line_marker.scale.x = 0.3; // 线宽
-
     line_marker.color.r = 1.0;
+    line_marker.color.g = 0.0;
+    line_marker.color.b = 0.0;
     line_marker.color.a = 1.0;
 
-    geometry_msgs::Point p1, p2;
-    p1.x = segStart[0]; p1.y = segStart[1]; p1.z = 0.0;
-    p2.x = segEnd[0]; p2.y = segEnd[1]; p2.z = 0.0;
-
-    line_marker.points.push_back(p1);
-    line_marker.points.push_back(p2);
+    // 添加所有路径点到标记
+    line_marker.points.clear();
+    for (const auto& point : full_path_points) {
+        geometry_msgs::Point p;
+        p.x = point[0];
+        p.y = point[1];
+        p.z = 0.0;
+        line_marker.points.push_back(p);
+    }
 }
 
 /*
@@ -90,7 +94,13 @@ void ShuSimCore::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& m
 
             geometry_msgs::Quaternion qtn_ = wamv_pose.orientation;
 	        tf2::Matrix3x3 m(tf2::Quaternion(qtn_.x, qtn_.y, qtn_.z, qtn_.w));
+            pose_stamped.pose=wamv_pose;
             m.getRPY(roll_current,pitch_current,yaw_current);
+            if (yaw_current < 0)
+            {
+                yaw_current = yaw_current + 2*M_PI;
+            }
+            
         }
     }
 }
@@ -117,6 +127,7 @@ void ShuSimCore::anglePublishSet(std_msgs::Float32 angle_set){
     right_angle_control.publish(angle_set);
 }
 
+
 /*
 *描述：仿真更新循环函数
 *作用：更新当前状态，以及具体的仿真控制循环
@@ -126,25 +137,35 @@ void ShuSimCore::anglePublishSet(std_msgs::Float32 angle_set){
 void ShuSimCore::tUpdate(){
     ros::Rate rate(30.0);
     while (ros::ok()) {
-        
-        geometry_msgs::PoseStamped pose_stamped;
-        pose_stamped.pose=wamv_pose;
+        ROS_INFO("size = %.i",usv_sim_path_ptr_->getPointSize());
+        for (size_t i = 0; i < usv_sim_path_ptr_->getPointSize(); i++){
+            segStart = usv_sim_path_ptr_->getPoint(i);
+            segEnd   = usv_sim_path_ptr_->getPoint(i+1);
 
-        path_msg.poses.push_back(pose_stamped);
-        model_pose.publish(path_msg);
+            ROS_INFO("Following segment %d: (%.1f, %.1f) to (%.1f, %.1f)", 
+            i, segStart[0], segStart[1], segEnd[0], segEnd[1]);
 
-		float target_yaw = (*usv_los_sim_ptr_)(segStart,segEnd,position_2D,usv_los_sim_ptr_->getLos());
-		float pid_angle_out = (*usv_sim_pid_ptr_)(target_yaw,yaw_current,usv_sim_pid_ptr_->getAnglePid(),1);
+            while ( (position_2D - segEnd).norm() >= 10.0){
 
-        vel_value.data = 0.4;
-        angle_value.data = pid_angle_out;
+                float target_yaw = (*usv_los_sim_ptr_)(segStart,segEnd,position_2D,usv_los_sim_ptr_->getLos());
+                float pid_angle_out = (*usv_sim_pid_ptr_)(target_yaw,yaw_current,usv_sim_pid_ptr_->getAnglePid(),1);
+                
+                ROS_INFO("yaw_current:%.5f",yaw_current);
+                ROS_INFO("pid_angle_out:%.5f",pid_angle_out);
 
-        anglePublishSet(angle_value);
-        velPublishSet(vel_value);
-        reference_line.publish(line_marker);
-        
-        ros::spinOnce();
-        rate.sleep();
+                vel_value.data = 0.4;
+                angle_value.data = pid_angle_out;
+
+                anglePublishSet(angle_value);
+                velPublishSet(vel_value);
+                reference_line.publish(line_marker);
+
+                path_msg.poses.push_back(pose_stamped);
+                model_pose.publish(path_msg);
+
+                ros::spinOnce();
+                rate.sleep();
+            }
+        }
 	}
-
 }

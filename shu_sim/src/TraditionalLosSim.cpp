@@ -69,25 +69,48 @@ void TraditionalLosSim::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector
 
 /*
 *描述：计算LOS（视线）的输出角度
-*作用：根据LOS参数计算当前LOS的输出角度
+*作用：根据LOS参数计算当前LOS的输出弧度
 *参数：[0]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：los的输出弧度
 */
 const float TraditionalLosSim::CalculateLos(std::shared_ptr<LosParamsSim> los ) const{
 
-    los->gamma_ =  atan2(los->segVector_[0],los->segVector_[1]);
+    los->gamma_ = atan2(los->segVector_[1], los->segVector_[0]);
 
-    los->y_e_ =  fabs(los->closestPoint_[0] - los->position_[0]) * cos(los->gamma_) + 
-                 fabs(los->closestPoint_[1] - los->position_[1]) * sin(los->gamma_);
-    if ( los->cross_ <= 0.0){
+    const float dx = los->closestPoint_[0] - los->position_[0];
+    const float dy = los->closestPoint_[1] - los->position_[1];
+    const float sin_gamma = sin(los->gamma_);
+    const float cos_gamma = cos(los->gamma_);
+    los->y_e_ = fabs(dx) * fabs(sin_gamma) + fabs(dy) * fabs(cos_gamma);
 
-        los->chi_ = los->gamma_ - atan2(los->y_e_,los->delta_);
-        los->chi_ = M_PI/2 - los->chi_;
+    const float atan_val = atan2(los->y_e_, los->delta_);
+    
+    const bool is_first_quadrant = fabs(los->gamma_) < M_PI / 2;
+    if (is_first_quadrant) {
+        if (los->cross_ <= 0.0) {
+            ROS_INFO("down_1/4");
+            los->chi_ = los->gamma_ + atan_val;
+        } else {
+            ROS_INFO("up_1/4");
+            los->chi_ = los->gamma_ - atan_val;
+        }
+    } else {
+        if (los->cross_ > 0.0) {
+            ROS_INFO("down_2/3");
+            los->chi_ = los->gamma_ - atan_val;
+        } else {
+            ROS_INFO("up_2/3");
+            los->chi_ = los->gamma_ + atan_val;
+        }
     }
-    else{
-        los->chi_ = M_PI/2 - los->gamma_ - atan2(los->y_e_,los->delta_);
-    }
+    ROS_INFO("ye:%.5f", atan_val);  // 统一输出位置
 
+    // 角度归一化到[0, 2π)
+    if (los->chi_ < 0) {
+        los->chi_ += 2 * M_PI;
+    }
+    
+    ROS_INFO("chi_:%.5f", los->chi_);
     return los->chi_;
 }
 

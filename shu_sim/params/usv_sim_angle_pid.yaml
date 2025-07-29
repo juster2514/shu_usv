@@ -5,7 +5,7 @@ Kp: -0.3
 Ki: -0.05
 Kd: -0.02
 CalculateTime: 50
-Integal.Limit: 0.4
+Integal.Limit: 0.3
 Use.Integal.Limit: true
-Output.Limit: 0.4
+Output.Limit: 0.3
 Use.Output.Limit: true
