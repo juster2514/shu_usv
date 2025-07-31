@@ -11,9 +11,10 @@
   ```
 + 启动rviz可视化
   ```shell
-  rviz
+  rviz -d ./src/shu_sim/params/shu_sim.rviz
   ```
   `Path`-----订阅话题为：`/usv_sim_pose`
+
   `Marker`--订阅话题为：`visualization_marker`
 ### 1.2 使用网络摄像头
 + 确保硬件连通
