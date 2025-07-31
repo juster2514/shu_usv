@@ -52,21 +52,28 @@ class ShuSimCore{
     void shuSimCoreInit();
 
     void modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& msg);
+    void modelLeftVelCallback(const std_msgs::Float32::ConstPtr& msg);
+    void modelRightVelCallback(const std_msgs::Float32::ConstPtr& msg);
 
     void velPublishSet(std_msgs::Float32 vel_set);
     void anglePublishSet(std_msgs::Float32 angle_set);
+    float calculateAngleError(float current, float target);
 
     void tUpdate();
 
  private:
  
     double roll_current, pitch_current, yaw_current;
+    double left_speed_current, right_speed_current;
+    // double delta_current;
 
     ros::NodeHandle nh_;
 
     std::shared_ptr<TraditionalLosSim> usv_los_sim_ptr_;
     std::shared_ptr<UsvSimPid> usv_sim_pid_ptr_;
     std::shared_ptr<PointPath> usv_sim_path_ptr_;
+
+    LosSimOut los_result;
 
     geometry_msgs::Pose wamv_pose;
     geometry_msgs::Twist wamv_twist;
@@ -82,7 +89,7 @@ class ShuSimCore{
     std::vector<Eigen::Vector2d> full_path_points;
 
     Eigen::Vector2d segStart;
-	 Eigen::Vector2d segEnd;
+	Eigen::Vector2d segEnd;
     Eigen::Vector2d position_2D;
 
     ros::Publisher left_vel_control;
@@ -92,9 +99,11 @@ class ShuSimCore{
     ros::Publisher right_angle_control;
 
     ros::Publisher model_pose;
-    ros::Subscriber usv_pose;  
-
     ros::Publisher reference_line;
+
+    ros::Subscriber usv_pose;  
+    ros::Subscriber usv_left_vel;  
+    ros::Subscriber usv_right_vel;  
 
 };
 

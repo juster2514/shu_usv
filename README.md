@@ -71,9 +71,13 @@
           scale:=2.0">
   ```
   `gain`：控制波浪的振幅。值越大，波浪越高，水面起伏越剧烈。
+
   `period`：波浪的周期。值越小，波浪越密集，频率越高。
+
   `direction`：波浪传播的方向。通常以二维向量形式表示，方向向量决定了波浪的传播方向。
+
   `angle`：波浪的随机性。值越大，波浪越不规则，模拟效果更自然。
+  
   `scale`：波浪网格的缩放比例。值越大，波浪覆盖范围越广，视觉上更宽广。
 + 传统LOS制导参数
   ```yaml
@@ -93,8 +97,8 @@
   Ki: -0.05
   Kd: -0.02
   CalculateTime: 50
-  Integal.Limit: 0.4
+  Integal.Limit: 0.3
   Use.Integal.Limit: true
-  Output.Limit: 0.4
+  Output.Limit: 0.3
   Use.Output.Limit: true
   ```

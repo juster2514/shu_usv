@@ -20,13 +20,13 @@ TraditionalLosSim::TraditionalLosSim() : nh_("~") {
 *参数：[0]segStart:线段的起点坐标;[1]segEnd:线段的终点坐标;[2]position:当前位置坐标;[3]los:共享指针，指向LosParamsSim对象，包含LOS的相关参数
 *输出：LOS的输出值，类型为float
 */
-float TraditionalLosSim::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position ,std::shared_ptr<LosParamsSim> los) const {
+LosSimOut TraditionalLosSim::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position ,std::shared_ptr<LosParamsSim> los) const {
 
     updatePosition(position,los);
     
     getClosestPoint(segStart,segEnd,los);
 
-    return CalculateLos(los);
+    return {CalculateLosAngle(los),CalculateLosSpeed(los)};
 
 }
 
@@ -68,12 +68,12 @@ void TraditionalLosSim::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector
 }
 
 /*
-*描述：计算LOS（视线）的输出角度
+*描述：计算LOS（视线）的输出弧度
 *作用：根据LOS参数计算当前LOS的输出弧度
 *参数：[0]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：los的输出弧度
 */
-const float TraditionalLosSim::CalculateLos(std::shared_ptr<LosParamsSim> los ) const{
+const float TraditionalLosSim::CalculateLosAngle(std::shared_ptr<LosParamsSim> los ) const{
 
     los->gamma_ = atan2(los->segVector_[1], los->segVector_[0]);
 
@@ -88,32 +88,42 @@ const float TraditionalLosSim::CalculateLos(std::shared_ptr<LosParamsSim> los ) 
     const bool is_first_quadrant = fabs(los->gamma_) < M_PI / 2;
     if (is_first_quadrant) {
         if (los->cross_ <= 0.0) {
-            ROS_INFO("down_1/4");
             los->chi_ = los->gamma_ + atan_val;
         } else {
-            ROS_INFO("up_1/4");
             los->chi_ = los->gamma_ - atan_val;
         }
     } else {
         if (los->cross_ > 0.0) {
-            ROS_INFO("down_2/3");
             los->chi_ = los->gamma_ - atan_val;
         } else {
-            ROS_INFO("up_2/3");
             los->chi_ = los->gamma_ + atan_val;
         }
     }
-    ROS_INFO("ye:%.5f", atan_val);  // 统一输出位置
 
     // 角度归一化到[0, 2π)
     if (los->chi_ < 0) {
         los->chi_ += 2 * M_PI;
     }
-    
-    ROS_INFO("chi_:%.5f", los->chi_);
+
     return los->chi_;
 }
 
 
+const float TraditionalLosSim::CalculateLosSpeed(std::shared_ptr<LosParamsSim> los ) const{
+        
+        // 核心计算公式
+    double reduction_factor = los->k_ * tanh(los->y_e_ / los->beta_);
+        
+        // 计算并限制速度范围
+    double desired_speed = los->max_speed_ * (1.0 - reduction_factor);
+    double min_speed = los->max_speed_ * (1.0 - los->k_) * 0.5;
+
+    // ROS_INFO("min_speed:%.5f",min_speed);
+
+    if (desired_speed < min_speed) desired_speed = min_speed;
+    if (desired_speed > los->max_speed_) desired_speed = los->max_speed_;
+
+    return desired_speed;
+}
 
         

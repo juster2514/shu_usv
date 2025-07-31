@@ -26,6 +26,8 @@ ShuSimCore::ShuSimCore():nh_("~"){
 
 //初始化订阅话题
     usv_pose = nh_.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states",10,&ShuSimCore::modelStatesCallback,this);
+    usv_left_vel = nh_.subscribe<std_msgs::Float32>("/wamv/thrusters/left_thrust_cmd",10,&ShuSimCore::modelLeftVelCallback,this);
+    usv_right_vel = nh_.subscribe<std_msgs::Float32>("/wamv/thrusters/right_thrust_cmd",10,&ShuSimCore::modelRightVelCallback,this);
 
 //初始化可视化参数
     shuSimCoreInit();
@@ -79,8 +81,7 @@ void ShuSimCore::shuSimCoreInit(){
 *参数：无
 *输出：无
 */
-void ShuSimCore::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& msg)
-{
+void ShuSimCore::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& msg){
     // 遍历所有模型名称
     for (size_t i = 0; i < msg->name.size(); ++i) {
         if (msg->name[i] == "wamv") {  // 检查是否为wamv模型
@@ -105,10 +106,18 @@ void ShuSimCore::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& m
     }
 }
 
+void ShuSimCore::modelLeftVelCallback(const std_msgs::Float32::ConstPtr& msg){
+    left_speed_current = msg->data;
+}
+
+void ShuSimCore::modelRightVelCallback(const std_msgs::Float32::ConstPtr& msg){
+    right_speed_current = msg->data;
+}
+
 /*
 *描述：USV左右两轮速度发布函数
 *作用：发布USV左右两轮的速度
-*参数：无
+*参数：[0]vel_set:设置的速度值
 *输出：无
 */
 void ShuSimCore::velPublishSet(std_msgs::Float32 vel_set){
@@ -119,7 +128,7 @@ void ShuSimCore::velPublishSet(std_msgs::Float32 vel_set){
 /*
 *描述：USV左右两轮角度发布函数
 *作用：发布USV左右两轮的角度
-*参数：无
+*参数：[0]angle_set:设置的角度值
 *输出：无
 */
 void ShuSimCore::anglePublishSet(std_msgs::Float32 angle_set){
@@ -127,6 +136,11 @@ void ShuSimCore::anglePublishSet(std_msgs::Float32 angle_set){
     right_angle_control.publish(angle_set);
 }
 
+float ShuSimCore::calculateAngleError(float current, float target) {
+    float error = target - current;
+    error = fmod(error + M_PI, 2 * M_PI);
+    return (error < 0) ? error + M_PI : error - M_PI;
+}
 
 /*
 *描述：仿真更新循环函数
@@ -136,6 +150,7 @@ void ShuSimCore::anglePublishSet(std_msgs::Float32 angle_set){
 */
 void ShuSimCore::tUpdate(){
     ros::Rate rate(30.0);
+    float delta_current = 0.0f;
     while (ros::ok()) {
         ROS_INFO("size = %.i",usv_sim_path_ptr_->getPointSize());
         for (size_t i = 0; i < usv_sim_path_ptr_->getPointSize(); i++){
@@ -147,17 +162,32 @@ void ShuSimCore::tUpdate(){
 
             while ( (position_2D - segEnd).norm() >= 10.0){
 
-                float target_yaw = (*usv_los_sim_ptr_)(segStart,segEnd,position_2D,usv_los_sim_ptr_->getLos());
-                float pid_angle_out = (*usv_sim_pid_ptr_)(target_yaw,yaw_current,usv_sim_pid_ptr_->getAnglePid(),1);
+                los_result = (*usv_los_sim_ptr_)(segStart,segEnd,position_2D,usv_los_sim_ptr_->getLos());
                 
-                ROS_INFO("yaw_current:%.5f",yaw_current);
-                ROS_INFO("pid_angle_out:%.5f",pid_angle_out);
+                float target_yaw = calculateAngleError(yaw_current,los_result.angle);
+                if (std::isnan(target_yaw)) {
+                    ROS_ERROR("Invalid target_yaw!");
+                    target_yaw = 0.0;
+                }
+                // float target_speed = los_result.speed;
+                ROS_INFO("target_yaw:%.5f",target_yaw);
+                // ROS_INFO("yaw_current:%.5f",yaw_current);
+
+                
+                
+                float pid_angle_out = (*usv_sim_pid_ptr_)(target_yaw,delta_current,PidSimParams::INCREMENTAL,usv_sim_pid_ptr_->getAnglePid(),1);
+                // delta_current +=pid_angle_out;
+                // ROS_INFO("left_speed_current:%.5f",left_speed_current);
+
+                // float pid_speed_out = (*usv_sim_pid_ptr_)(target_speed,left_speed_current,usv_sim_pid_ptr_->getSpeedPid(),1);
+
 
                 vel_value.data = 0.4;
                 angle_value.data = pid_angle_out;
 
                 anglePublishSet(angle_value);
                 velPublishSet(vel_value);
+
                 reference_line.publish(line_marker);
 
                 path_msg.poses.push_back(pose_stamped);

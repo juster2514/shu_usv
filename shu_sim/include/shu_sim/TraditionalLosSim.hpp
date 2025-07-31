@@ -8,12 +8,14 @@
 #include <opencv2/opencv.hpp>
 
 struct LosParamsSim {
-  LosParamsSim(float delta, float max_heading_rate ): delta_(delta), max_heading_rate_(max_heading_rate) {};
+  LosParamsSim(float delta, float max_speed ): delta_(delta), max_speed_(max_speed) {};
   LosParamsSim(const std::string& los_parmas_file) {
     cv::FileStorage file(los_parmas_file, cv::FileStorage::READ);
     file["usv_length"] >> usv_length_;
     file["lammda"] >> lammda_;
-    file["max_heading_rate"] >> max_heading_rate_;
+    file["beta"] >> beta_;
+    file["max_speed"] >> max_speed_;
+    file["k"] >> k_;
     delta_ = usv_length_ * lammda_;
   };
 
@@ -29,14 +31,22 @@ struct LosParamsSim {
   
   double usv_length_;
   double lammda_;
+  double beta_;
   double delta_;
   double cross_;
-  double max_heading_rate_ ;
+  double max_speed_ ;
   double gamma_ ;
   double y_e_ ;
   double chi_;
+  double k_;
 
 };
+
+struct LosSimOut{
+  float angle;
+  float speed;
+};
+
 
 class TraditionalLosSim
 {
@@ -44,12 +54,14 @@ class TraditionalLosSim
   explicit TraditionalLosSim();
   ~TraditionalLosSim() = default;
 
-  float operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position , std::shared_ptr<LosParamsSim> los) const;
+  LosSimOut operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position , std::shared_ptr<LosParamsSim> los) const;
 
   void updatePosition(Eigen::Vector2d position,std::shared_ptr<LosParamsSim> los) const;
   void getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d segEnd , std::shared_ptr<LosParamsSim> los) const;
 
-  const float CalculateLos(std::shared_ptr<LosParamsSim> los ) const;
+  const float CalculateLosAngle(std::shared_ptr<LosParamsSim> los ) const;
+
+  const float CalculateLosSpeed(std::shared_ptr<LosParamsSim> los ) const;
 
   std::shared_ptr<LosParamsSim> getLos() const { return traditional_los_ptr_sim_; };
 

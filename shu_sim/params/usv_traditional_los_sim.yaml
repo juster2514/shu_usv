@@ -2,5 +2,6 @@
 ---
 usv_length: 3.78
 lammda: 3.0
-delta: 0.0
-max_heading_rate: 0.0
+beta: 6.0
+k: 0.6
+max_speed: 1.0

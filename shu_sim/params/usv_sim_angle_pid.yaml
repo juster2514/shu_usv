@@ -1,9 +1,9 @@
 %YAML:1.0
 ---
 Pid.Name: usv_sim_angle_pid
-Kp: -0.3
-Ki: -0.05
-Kd: -0.02
+Kp: -0.18
+Ki: -0.08
+Kd: -0.03
 CalculateTime: 50
 Integal.Limit: 0.3
 Use.Integal.Limit: true

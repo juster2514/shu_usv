@@ -19,18 +19,19 @@ struct PidSimParams {
     file["Use.Output.Limit"] >> use_output_limit_;
     file["CalculateTime"] >> calculate_time_;
   };
-
+  enum PidType { INCREMENTAL, POSITION };
   ~PidSimParams() = default;
   std::string pid_name_;
   double kp_{0.0}, ki_{0.0}, kd_{0.0};
   double last_error_{0.0}, error_{0.0}, error_integral_{0.0};
+  double last_output_{0.0}, last_last_error_{0.0};
   double target_{0.0}, current_{0.0};
   double output_{0.0};
   double pid_error_integral_limit_{0.0};
   double output_limit_{0.0}, integral_limit_{0.0};
   bool use_intgral_limit_{false};
   bool use_output_limit_{true};
-  int calculate_time_{10};
+  int  calculate_time_{10};
 
 };
 
@@ -41,9 +42,11 @@ class UsvSimPid
   ~UsvSimPid() = default;
 
   float operator()(const float target, const float current,
+                   const PidSimParams::PidType PID_TYPE,
                    std::shared_ptr<PidSimParams> pid,bool clean_integral) const;
 
-  const float CalculatePid(float target, float current,std::shared_ptr<PidSimParams> pid,bool clean_integral) const;
+  const float CalculatePidPosition(float target, float current,std::shared_ptr<PidSimParams> pid,bool clean_integral) const;
+  const float CalculatePidIncremental(float target, float current,std::shared_ptr<PidSimParams> pid,bool clean_integral) const;
 
   std::shared_ptr<PidSimParams> getAnglePid() const { return angle_pid_ptr_; };
   std::shared_ptr<PidSimParams> getSpeedPid() const { return speed_pid_ptr_; };

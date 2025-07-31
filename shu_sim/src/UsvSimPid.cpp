@@ -18,10 +18,18 @@ UsvSimPid::UsvSimPid() : nh_("~") {
 
 }
 
-float UsvSimPid::operator()(const float target, const float current,std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
-
-    return CalculatePid(target, current, pid, clean_integral);
-
+float UsvSimPid::operator()(const float target, const float current,const PidSimParams::PidType PID_TYPE,
+                            std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
+  switch (PID_TYPE) {
+    case PidSimParams::PidType::INCREMENTAL: {
+      return CalculatePidIncremental(target, current, pid, clean_integral);
+    }
+    case PidSimParams::PidType::POSITION: {
+      return CalculatePidPosition(target, current, pid, clean_integral);
+    }
+    default:
+      break;
+  }
 }
 
 /*
@@ -45,8 +53,8 @@ float PidLimit(float value, float min, float max) {
 *参数：[0]target:期望值;[1]current:当前值;[2]pid:计算哪个环的PID;[3]clean_integral:是否清除积分
 *输出：计算后的PID输出值
 */
-const float UsvSimPid::CalculatePid(float target, float current, std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
-
+const float UsvSimPid::CalculatePidPosition(float target, float current, std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
+  
   pid->current_ = current;
   pid->target_ = target;
   pid->error_ = pid->target_ - pid->current_;
@@ -64,7 +72,49 @@ const float UsvSimPid::CalculatePid(float target, float current, std::shared_ptr
   pid->last_error_ = pid->error_;
 
   if (pid->use_output_limit_) pid->output_ = PidLimit(pid->output_, -pid->output_limit_, pid->output_limit_);
-
+  // ROS_INFO_STREAM("PID_name: " << pid->pid_name_<<"  pid->output_:"<<pid->output_);
   return pid->output_;
+
+}
+
+
+const float UsvSimPid::CalculatePidIncremental(float target, float current, std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
+  
+    pid->current_ = current;
+    ROS_INFO("pid->current_:%.5f",pid->current_);
+    pid->target_ = target;
+    ROS_INFO("pid->target_:%.5f",pid->target_);
+    pid->error_ = pid->target_ - pid->current_;
+    ROS_INFO("pid->error_ :%.5f",pid->error_ );
+
+    ROS_INFO("KP:%.5f, KI:%.5f, KD:%.5f", pid->kp_, pid->ki_, pid->kd_);
+    ROS_INFO("last_error:%.5f, last_last_error:%.5f", pid->last_error_, pid->last_last_error_);
+    
+    if (clean_integral) {
+        pid->last_error_ = 0.0;
+        pid->last_last_error_ = 0.0;
+        pid->last_output_ = 0.0;
+    }
+
+    double p_out = pid->kp_ * (pid->error_ - pid->last_error_);
+    double i_out = pid->ki_ * pid->error_;
+    double d_out = pid->kd_ * (pid->error_ - 2 * pid->last_error_ + pid->last_last_error_);
+    
+    ROS_INFO("P_out:%.5f, I_out:%.5f, D_out:%.5f", p_out, i_out, d_out);
+    ROS_INFO("last_output_:%.5f", pid->last_output_);
+    ROS_INFO("pid->output_limit_:%.5f", pid->output_limit_);
+    pid->output_ = pid->last_output_ + p_out + i_out + d_out;
+    
+    if (pid->use_output_limit_) {
+        pid->output_ = PidLimit(pid->output_, -pid->output_limit_, pid->output_limit_);
+    }
+    
+    pid->last_last_error_ = pid->last_error_; 
+    pid->last_error_ = pid->error_;
+    pid->last_output_ = pid->output_;          
+    
+    ROS_INFO_STREAM("PID_name: " << pid->pid_name_ 
+                   << " output: " << pid->output_);
+    return pid->output_;
 
 }
