@@ -18,6 +18,13 @@ UsvSimPid::UsvSimPid() : nh_("~") {
 
 }
 
+/*
+*描述：计算PID输出
+*作用：计算是哪个环的PID，以及用那种PID计算方法
+*参数：[0]segStart:线段的起点坐标;[1]segEnd:线段的终点坐标;[2]position:当前位置坐标;[3]PID_TYPE:使用那种计算方式;
+      [4]los:共享指针，指向LosParamsSim对象，包含LOS的相关参数;[5]clean_integral:是否清除积分
+*输出：计算的PID值
+*/
 float UsvSimPid::operator()(const float target, const float current,const PidSimParams::PidType PID_TYPE,
                             std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
   switch (PID_TYPE) {
@@ -48,10 +55,10 @@ float PidLimit(float value, float min, float max) {
 }
 
 /*
-*描述：PID输出计算函数
+*描述：位置式PID计算函数
 *作用：计算PID的输出值
 *参数：[0]target:期望值;[1]current:当前值;[2]pid:计算哪个环的PID;[3]clean_integral:是否清除积分
-*输出：计算后的PID输出值
+*输出：计算后的位置PID输出值
 */
 const float UsvSimPid::CalculatePidPosition(float target, float current, std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
   
@@ -60,9 +67,9 @@ const float UsvSimPid::CalculatePidPosition(float target, float current, std::sh
   pid->error_ = pid->target_ - pid->current_;
   pid->error_integral_ += pid->error_;
   
-  if (pid->use_intgral_limit_)
-    pid->error_integral_ = PidLimit(pid->error_integral_, -pid->integral_limit_,
-                                    pid->integral_limit_);
+  if (pid->use_intgral_limit_){
+     pid->error_integral_ = PidLimit(pid->error_integral_, -pid->integral_limit_,pid->integral_limit_);
+  }
 
   double p_out = pid->kp_ * pid->error_;
   double i_out = pid->ki_ * pid->error_integral_;
@@ -72,49 +79,54 @@ const float UsvSimPid::CalculatePidPosition(float target, float current, std::sh
   pid->last_error_ = pid->error_;
 
   if (pid->use_output_limit_) pid->output_ = PidLimit(pid->output_, -pid->output_limit_, pid->output_limit_);
-  // ROS_INFO_STREAM("PID_name: " << pid->pid_name_<<"  pid->output_:"<<pid->output_);
+  
+  /*调试使用*/
+  // ROS_INFO_STREAM("PID_name: " << pid->pid_name_
+  //               <<"pid->output_:"<<pid->output_);
+
   return pid->output_;
 
 }
 
-
+/*
+*描述：增量式PID计算函数
+*作用：计算PID的输出值
+*参数：[0]target:期望值;[1]current:当前值;[2]pid:计算哪个环的PID;[3]clean_integral:是否清除积分
+*输出：计算后的增量式PID输出值
+*/
 const float UsvSimPid::CalculatePidIncremental(float target, float current, std::shared_ptr<PidSimParams> pid, bool clean_integral) const {
   
-    pid->current_ = current;
-    ROS_INFO("pid->current_:%.5f",pid->current_);
-    pid->target_ = target;
-    ROS_INFO("pid->target_:%.5f",pid->target_);
-    pid->error_ = pid->target_ - pid->current_;
-    ROS_INFO("pid->error_ :%.5f",pid->error_ );
+  pid->current_ = current;
 
-    ROS_INFO("KP:%.5f, KI:%.5f, KD:%.5f", pid->kp_, pid->ki_, pid->kd_);
-    ROS_INFO("last_error:%.5f, last_last_error:%.5f", pid->last_error_, pid->last_last_error_);
-    
-    if (clean_integral) {
-        pid->last_error_ = 0.0;
-        pid->last_last_error_ = 0.0;
-        pid->last_output_ = 0.0;
-    }
+  pid->target_ = target;
 
-    double p_out = pid->kp_ * (pid->error_ - pid->last_error_);
-    double i_out = pid->ki_ * pid->error_;
-    double d_out = pid->kd_ * (pid->error_ - 2 * pid->last_error_ + pid->last_last_error_);
-    
-    ROS_INFO("P_out:%.5f, I_out:%.5f, D_out:%.5f", p_out, i_out, d_out);
-    ROS_INFO("last_output_:%.5f", pid->last_output_);
-    ROS_INFO("pid->output_limit_:%.5f", pid->output_limit_);
-    pid->output_ = pid->last_output_ + p_out + i_out + d_out;
-    
-    if (pid->use_output_limit_) {
-        pid->output_ = PidLimit(pid->output_, -pid->output_limit_, pid->output_limit_);
-    }
-    
-    pid->last_last_error_ = pid->last_error_; 
-    pid->last_error_ = pid->error_;
-    pid->last_output_ = pid->output_;          
-    
-    ROS_INFO_STREAM("PID_name: " << pid->pid_name_ 
-                   << " output: " << pid->output_);
-    return pid->output_;
+  pid->error_ = pid->target_ - pid->current_;
+
+
+  if (clean_integral) {
+      pid->last_error_ = 0.0;
+      pid->last_last_error_ = 0.0;
+      pid->last_output_ = 0.0;
+  }
+
+  double p_out = pid->kp_ * (pid->error_ - pid->last_error_);
+  double i_out = pid->ki_ * pid->error_;
+  double d_out = pid->kd_ * (pid->error_ - 2 * pid->last_error_ + pid->last_last_error_);
+
+  pid->output_ = pid->last_output_ + p_out + i_out + d_out;
+
+  if (pid->use_output_limit_) {
+      pid->output_ = PidLimit(pid->output_, -pid->output_limit_, pid->output_limit_);
+  }
+
+  pid->last_last_error_ = pid->last_error_; 
+  pid->last_error_ = pid->error_;
+  pid->last_output_ = pid->output_;          
+
+  /*调试使用*/
+  // ROS_INFO_STREAM("PID_name: " << pid->pid_name_ 
+  //                << " output: " << pid->output_);
+                  
+  return pid->output_;
 
 }

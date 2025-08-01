@@ -118,8 +118,6 @@ const float TraditionalLosSim::CalculateLosSpeed(std::shared_ptr<LosParamsSim> l
     double desired_speed = los->max_speed_ * (1.0 - reduction_factor);
     double min_speed = los->max_speed_ * (1.0 - los->k_) * 0.5;
 
-    // ROS_INFO("min_speed:%.5f",min_speed);
-
     if (desired_speed < min_speed) desired_speed = min_speed;
     if (desired_speed > los->max_speed_) desired_speed = los->max_speed_;
 

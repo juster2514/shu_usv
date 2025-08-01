@@ -49,7 +49,7 @@ class ShuSimCore{
     ShuSimCore();
     ~ShuSimCore() = default;
 
-    void shuSimCoreInit();
+    void shuSimVisualizationInit();
 
     void modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& msg);
     void modelLeftVelCallback(const std_msgs::Float32::ConstPtr& msg);
@@ -65,7 +65,6 @@ class ShuSimCore{
  
     double roll_current, pitch_current, yaw_current;
     double left_speed_current, right_speed_current;
-    // double delta_current;
 
     ros::NodeHandle nh_;
 
