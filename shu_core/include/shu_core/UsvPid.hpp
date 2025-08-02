@@ -20,10 +20,12 @@ struct PidParams {
     file["CalculateTime"] >> calculate_time_;
   };
 
+  enum PidType { INCREMENTAL, POSITION };
   ~PidParams() = default;
   std::string pid_name_;
   double kp_{0.0}, ki_{0.0}, kd_{0.0};
   double last_error_{0.0}, error_{0.0}, error_integral_{0.0};
+  double last_output_{0.0}, last_last_error_{0.0};
   double target_{0.0}, current_{0.0};
   double output_{0.0};
   double pid_error_integral_limit_{0.0};
@@ -41,9 +43,11 @@ class UsvPid
   ~UsvPid() = default;
 
   float operator()(const float target, const float current,
+                   const PidParams::PidType PID_TYPE,
                    std::shared_ptr<PidParams> pid,bool clean_integral) const;
 
-  const float CalculatePid(float target, float current,std::shared_ptr<PidParams> pid,bool clean_integral) const;
+  const float CalculatePidPosition(float target, float current,std::shared_ptr<PidParams> pid,bool clean_integral) const;
+  const float CalculatePidIncremental(float target, float current,std::shared_ptr<PidParams> pid,bool clean_integral) const;
 
   std::shared_ptr<PidParams> getAnglePid() const { return angle_pid_ptr_; };
   std::shared_ptr<PidParams> getSpeedPid() const { return speed_pid_ptr_; };

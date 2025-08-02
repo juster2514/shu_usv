@@ -20,13 +20,13 @@ TraditionalLos::TraditionalLos() : nh_("~") {
 *参数：[0]segStart:线段的起点坐标;[1]segEnd:线段的终点坐标;[2]position:当前位置坐标;[3]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：LOS的输出值，类型为float
 */
-float TraditionalLos::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position ,std::shared_ptr<LosParams> los) const {
+LosOut TraditionalLos::operator()(Eigen::Vector2d segStart, Eigen::Vector2d segEnd, Eigen::Vector2d position ,std::shared_ptr<LosParams> los) const {
 
     updatePosition(position,los);
     
     getClosestPoint(segStart,segEnd,los);
 
-    return CalculateLos(los);
+    return {CalculateLosAngle(los),CalculateLosSpeed(los)};
 
 }
 
@@ -54,6 +54,8 @@ void TraditionalLos::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d 
 
     los->pointToStart_ = los->position_ - segStart;
 
+    los->cross_ = los->segVector_.x() * los->pointToStart_.y() - los->segVector_.y() * los->pointToStart_.x();
+
     double segLength = sqrt(los->segVector_.squaredNorm());
 
     double proj = los->pointToStart_.dot(los->segVector_) / segLength;
@@ -63,6 +65,7 @@ void TraditionalLos::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d 
 
     los->closestPoint_ = segStart + (proj * los->segVector_ / segLength);
 
+
 }
 
 /*
@@ -71,15 +74,53 @@ void TraditionalLos::getClosestPoint(Eigen::Vector2d segStart , Eigen::Vector2d 
 *参数：[0]los:共享指针，指向LosParams对象，包含LOS的相关参数
 *输出：LOS的输出角度
 */
-const float TraditionalLos::CalculateLos(std::shared_ptr<LosParams> los ) const{
+const float TraditionalLos::CalculateLosAngle(std::shared_ptr<LosParams> los ) const{
 
-    los->gamma_ =  atan2(los->segVector_[1],los->segVector_[0]);// y在前，x在后
+    los->gamma_ = atan2(los->segVector_[1], los->segVector_[0]);
 
-    los->y_e_ =  (los->closestPoint_[0] - los->position_[0]) * sin(los->gamma_) + 
-                 (los->closestPoint_[1] - los->position_[1]) * cos(los->gamma_);
+    const float dx = los->closestPoint_[0] - los->position_[0];
+    const float dy = los->closestPoint_[1] - los->position_[1];
+    const float sin_gamma = sin(los->gamma_);
+    const float cos_gamma = cos(los->gamma_);
+    los->y_e_ = fabs(dx) * fabs(sin_gamma) + fabs(dy) * fabs(cos_gamma);
 
-    los->chi_ = los->gamma_ - atan2(los->y_e_,los->delta_);
+    const float atan_val = atan2(los->y_e_, los->delta_);
+    
+    const bool is_first_quadrant = fabs(los->gamma_) < M_PI / 2;
+    if (is_first_quadrant) {
+        if (los->cross_ <= 0.0) {
+            los->chi_ = los->gamma_ + atan_val;
+        } else {
+            los->chi_ = los->gamma_ - atan_val;
+        }
+    } else {
+        if (los->cross_ > 0.0) {
+            los->chi_ = los->gamma_ - atan_val;
+        } else {
+            los->chi_ = los->gamma_ + atan_val;
+        }
+    }
+
+    // 角度归一化到[0, 2π)
+    if (los->chi_ < 0) {
+        los->chi_ += 2 * M_PI;
+    }
 
     return los->chi_;
+}
+
+const float TraditionalLos::CalculateLosSpeed(std::shared_ptr<LosParams> los ) const{
+        
+        // 核心计算公式
+    double reduction_factor = los->k_ * tanh(los->y_e_ / los->beta_);
+        
+        // 计算并限制速度范围
+    double desired_speed = los->max_speed_ * (1.0 - reduction_factor);
+    double min_speed = los->max_speed_ * (1.0 - los->k_) * 0.5;
+
+    if (desired_speed < min_speed) desired_speed = min_speed;
+    if (desired_speed > los->max_speed_) desired_speed = los->max_speed_;
+
+    return desired_speed;
 }
 
